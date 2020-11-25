@@ -34,7 +34,7 @@ RUN R -e 'BiocManager::install("GenomicFeatures")'
 ADD scripts /home/scripts
 ADD software /home/software
 RUN mkdir /home/data
-
+RUN cd /home/software && git clone --branch 2.7.6a git@github.com:alexdobin/STAR.git
 
 
 
