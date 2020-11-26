@@ -1,68 +1,180 @@
-#!/bin/bash
+#!/bin/bash -x
+## -x : expands variables and prints commands as they are called
 
-organism=$1
-taxid=$2
-gtf=$3
-fasta=$4
-appendix=$5
+## TODO:
+## - specification: after -- (empty flag) use params not used for this script -> i.e. reserved for tool not part of this image
+## - make flags for each tool -> if set, create index for said tool
+## - (Salmon) replace Salmon call
+## - (R)remove organism and taxonomy id from R index?
+## - remove hisat2_index.sh
+## - (kallisto) replace kallisto absolute path with alias
+## - (kallisto/Salmon) resolve kallisto/Salmon dependency
+## - (kallisto) update kallisto
+## - (STAR) replace overhang with readLength param provided from automated config
+## - echo mapped variables before image call
+## - print mapping /home/blabla/index mapped to /home/data/index
+
+
+# saner programming env: these switches turn some bugs into errors
+set -o errexit -o pipefail -o noclobber -o nounset
+
+# -allow a command to fail with !’s side effect on errexit
+# -use return value from ${PIPESTATUS[0]}, because ! hosed $?
+! getopt --test > /dev/null 
+if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
+    echo 'I’m sorry, `getopt --test` failed in this environment.'
+    exit 1
+fi
+
+#OPTIONS=g:f:o:t:
+LONGOPTS=gtf:,fasta:,organism:,taxid:,nthread:,hisat2,star,kallisto,salmon,r,dexseq
+
+# -regarding ! and PIPESTATUS see above
+# -temporarily store output to be able to check for errors
+# -activate quoting/enhanced mode (e.g. by writing out “--options”)
+# -pass arguments only via   -- "$@"   to separate them correctly
+! PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
+if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+    # e.g. return value is 1
+    #  then getopt has complained about wrong arguments to stdout
+    exit 2
+fi
+# read getopt’s output this way to handle the quoting right:
+eval set -- "$PARSED"
+
+gtf=- fasta=- organism=- taxid=- nthread=4
+hisat2=n star=n kallisto=n salmon=n r=n dexseq=n 
+# now enjoy the options in order and nicely split until we see --
+while true; do
+    case "$1" in
+        --gtf)
+            gtf="$2"
+            shift 2
+            ;;
+        --fasta)
+            fasta="$2"
+            shift 2
+            ;;
+        --organism)
+            organism="$2"
+            shift 2
+            ;;
+        --taxid)
+            taxid="$2"
+            shift 2
+            ;;
+        --nthread)
+            nthread="$2"
+            shift 2
+            ;;
+        --hisat2)
+            hisat2=y
+            shift
+            ;;
+        --star)
+            star=y
+            shift
+            ;;
+        --kallisto)
+            kallisto=y
+            shift
+            ;;
+        --salmon)
+            salmon=y
+            shift
+            ;;
+        --dexseq)
+            dexseq=y
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "Programming error"
+            exit 3
+            ;;
+    esac
+done
+
+# handle non-option arguments
+if [[ $# -ne 0 ]]; then
+    echo "$0: empty flag detected, is this intentional?!"
+    #exit 4
+fi
+
 
 outdir='/home/data/indices'
-
-DEXSeqScript='/home/scripts/DEXSeq/dexseq_prepare_annotation.py'
-RIndices='/home/scripts/generate_R_index.R'
-SalmonScript='/home/software/gffread/gffread-0.11.5.Linux_x86_64/gffread'
-KallistoScript='/home/software/kallisto_linux-v0.45.0/kallisto'
-STARScript='/home/software/STAR/bin/Linux_x86_64_static/STAR'
-HISATScript='/home/scripts/hisat2_index.sh'
-
-echo 'Organism'$'\t'$organism
-echo 'taxid'$'\t'$taxid
-echo 'outDir'$'\t'$outdir
-echo 'appendix'$'\t'$appendix
-echo 'gtf'$'\t'$gtf
-echo 'fasta'$'\t'$fasta
-
-#DEXSeq
-echo $'\n'"generating DEXSeq index..."
-mkdir -p $outdir/DEXSeq/$appendix/
-/usr/bin/python3 $DEXSeqScript --aggregate=no $gtf $outdir/DEXSeq/$appendix/annot.noaggregate.gtf
-echo "second DEXSeq gtf..."
-/usr/bin/python3 $DEXSeqScript $gtf $outdir/DEXSeq/$appendix/annot.gtf
-
-#R
-echo $'\n'"generating R index..."
-mkdir -p $outdir/R/$appendix/
-$RIndices --gtf $gtf --outdir $outdir/R/$appendix/ --organism $organism --taxonomyId $taxid
+echo 'organism:'$'\t'$organism
+echo 'taxid:'$'\t'$taxid
+echo 'gtf:'$'\t'$gtf
+echo 'fasta:'$'\t'$fasta
 
 
-#SALMON
-echo $'\n'"generating salmon index..."
-mkdir -p $outdir/salmon/$appendix/
-echo "gffread -w $outdir/salmon/$appendix/cdna.fa -g $fasta $gtf"
-$SalmonScript -w $outdir/salmon/$appendix/cdna.fa -g $fasta $gtf
+## HISAT2
+if [[ hisat2 -eq y ]]; then
+    echo $'\n'"[INFO] [generate_indices.sh] [HISAT2] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: create index"
+    mkdir -p $outdir/hisat2/tmp
+    hisatTMP=$outdir/hisat2/tmp
+    ## extracting splice sites...
+    python2 /home/software/hisat2-2.1.0/extract_splice_sites.py $gtf >> $hisatTMP/tmp.ss
+    ## extracting exons...
+    python2 /home/software/hisat2-2.1.0/extract_exons.py $gtf >> $hisatTMP/tmp.exon
+    ## building index...
+    python2 /home/software/hisat2-2.1.0/hisat2-build -p 8 --ss $hisatTMP/tmp.ss --exon $hisatTMP/tmp.exon $fasta $outdir/hisat2/INDEX
+    rm $hisatTMP/tmp.ss
+    rm $hisatTMP/tmp.exon
+    rm -r $hisatTMP
+    echo "[INFO] [generate_indices.sh] [HISAT2] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: create index"$'\n'
+fi
 
 
-#KALLISTO
-echo $'\n'"generating kallisto index..."
-mkdir -p $outdir/kallisto/$appendix/
-echo "kallisto index --index $outdir/kallisto/$appendix/INDEX $outdir/salmon/$appendix/cdna.fa"
-$KallistoScript index --index $outdir/kallisto/$appendix/INDEX $outdir/salmon/$appendix/cdna.fa
 
-#HISAT2
-echo $'\n'"generating HISAT2 index..."
-mkdir -p $outdir/hisat2/$appendix/
-echo "hisat2_index.sh $gtf $fasta $outdir/hisat2/$appendix/ $outdir/hisat2/$appendix/INDEX"
-$HISATScript $gtf $fasta $outdir/hisat2/$appendix/ $outdir/hisat2/$appendix/INDEX
-
-#STAR
-echo $'\n'"generating STAR index..."
-overhang=99
-
-mkdir -p $outdir/STAR/$appendix/INDEX/$overhang
-echo "$STARScript --runMode genomeGenerate --runThreadN 8 \
-    --genomeDir $outdir/STAR/$appendix/INDEX/ --genomeFastaFiles $fasta \
-    --sjdbGTFfile $gtf --sjdbOverhang $overhang"
-
-$STARScript --runMode genomeGenerate --runThreadN 8 \
-    --genomeDir $outdir/STAR/$appendix/INDEX/ --genomeFastaFiles $fasta \
+## STAR
+if [[ star -eq y ]]; then
+    echo $'\n'"[INFO] [generate_indices.sh] [STAR] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate STAR index..."
+    overhang=99
+    mkdir -p $outdir/STAR/$overhang
+    /home/software/STAR/bin/Linux_x86_64_static/STAR --runMode genomeGenerate --runThreadN $nthread \
+    --genomeDir $outdir/STAR/ --genomeFastaFiles $fasta \
     --sjdbGTFfile $gtf --sjdbOverhang $overhang
+    echo $'\n'"[INFO] [generate_indices.sh] [STAR] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: generate STAR index..."
+fi
+
+
+## DEXSeq
+if [[ dexseq -eq y ]]; then
+    echo $'\n'"[INFO] [generate_indices.sh] [DEXSeq] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: process GTF-File"
+    mkdir -p $outdir/dexseq/
+    /usr/bin/python3 /home/scripts/DEXSeq/dexseq_prepare_annotation.py --aggregate=no $gtf $outdir/dexseq/annot.noaggregate.gtf
+    /usr/bin/python3 /home/scripts/DEXSeq/dexseq_prepare_annotation.py $gtf $outdir/dexseq/annot.gtf
+    echo "[INFO] [generate_indices.sh] [DEXSeq] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: process GTF-File"$'\n'
+fi
+
+
+## R
+if [[ r -eq y ]]; then
+    echo $'\n'"[INFO] [generate_indices.sh] [R] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate R index..."
+    mkdir -p $outdir/R/
+    /home/scripts/generate_R_index.R --gtf $gtf --outdir $outdir/R/ --organism $organism --taxonomyId $taxid
+    echo "[INFO] [generate_indices.sh] [R] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: generate R index..."$'\n'
+fi
+
+
+## SALMON -> will be moved to standalone image
+if [[ salmon -eq y ]]; then
+    echo $'\n'"[INFO] [generate_indices.sh] [Salmon] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate Salmon index..."
+    mkdir -p $outdir/salmon/
+    /home/software/gffread/gffread-0.11.5.Linux_x86_64/gffread -w $outdir/salmon/cdna.fa -g $fasta $gtf
+    echo $'\n'"[INFO] [generate_indices.sh] [Salmon] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate Salmon index..."
+fi
+
+
+## KALLISTO
+if [[ kallisto -eq y ]]; then
+    echo $'\n'"[INFO] [generate_indices.sh] [kallisto] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate kallisto index..."
+    mkdir -p $outdir/kallisto/
+    /home/software/kallisto_linux-v0.45.0/kallisto index --index $outdir/kallisto/INDEX $outdir/salmon/cdna.fa
+    echo "[INFO] [generate_indices.sh] [kallisto] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: generate kallisto index..."$'\n'
+fi
