@@ -92,8 +92,7 @@ while true; do
             break
             ;;
         *)
-            echo "Programming error"
-            exit 3
+            shift
             ;;
     esac
 done
@@ -113,7 +112,7 @@ echo 'fasta:'$'\t'$fasta
 
 
 ## HISAT2
-if [[ hisat2 -eq y ]]; then
+if [[ "$hisat2" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [HISAT2] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: create index"
     mkdir -p $outdir/hisat2/tmp
     hisatTMP=$outdir/hisat2/tmp
@@ -132,7 +131,7 @@ fi
 
 
 ## STAR
-if [[ star -eq y ]]; then
+if [[ "$star" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [STAR] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate STAR index..."
     overhang=99
     mkdir -p $outdir/STAR/$overhang
@@ -144,7 +143,7 @@ fi
 
 
 ## DEXSeq
-if [[ dexseq -eq y ]]; then
+if [[ $dexseq -eq y ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [DEXSeq] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: process GTF-File"
     mkdir -p $outdir/dexseq/
     /usr/bin/python3 /home/scripts/DEXSeq/dexseq_prepare_annotation.py --aggregate=no $gtf $outdir/dexseq/annot.noaggregate.gtf
@@ -154,7 +153,7 @@ fi
 
 
 ## R
-if [[ r -eq y ]]; then
+if [[ "$r" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [R] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate R index..."
     mkdir -p $outdir/R/
     /home/scripts/generate_R_index.R --gtf $gtf --outdir $outdir/R/ --organism $organism --taxonomyId $taxid
@@ -163,7 +162,7 @@ fi
 
 
 ## SALMON -> will be moved to standalone image
-if [[ salmon -eq y ]]; then
+if [[ "$salmon" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [Salmon] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate Salmon index..."
     mkdir -p $outdir/salmon/
     /home/software/gffread/gffread-0.11.5.Linux_x86_64/gffread -w $outdir/salmon/cdna.fa -g $fasta $gtf
@@ -172,7 +171,7 @@ fi
 
 
 ## KALLISTO
-if [[ kallisto -eq y ]]; then
+if [[ "$kallisto" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [kallisto] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate kallisto index..."
     mkdir -p $outdir/kallisto/
     /home/software/kallisto_linux-v0.45.0/kallisto index --index $outdir/kallisto/INDEX $outdir/salmon/cdna.fa
