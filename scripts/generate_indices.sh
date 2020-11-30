@@ -26,8 +26,8 @@ if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
     exit 1
 fi
 
-OPTIONS=r
-LONGOPTS=gtf:,fasta:,organism:,taxid:,nthread:,hisat2,star,kallisto,salmon,dexseq,index:,empires
+OPTIONS=
+LONGOPTS=gtf:,fasta:,organism:,taxid:,nthread:,hisat2,star,kallisto,salmon,r,dexseq,index:,empires
 
 # -regarding ! and PIPESTATUS see above
 # -temporarily store output to be able to check for errors
@@ -43,7 +43,7 @@ fi
 eval set -- "$PARSED"
 
 gtf=- fasta=- organism=- taxid=- nthread=4
-hisat2=n star=n kallisto=n salmon=n r=n dexseq=n 
+hisat2=n star=n kallisto=n salmon=n r=n dexseq=n
 # now enjoy the options in order and nicely split until we see --
 while true; do
     case "$1" in
@@ -85,6 +85,10 @@ while true; do
             ;;
         --dexseq)
             dexseq=y
+            shift
+            ;;
+		--r)
+            r=y
             shift
             ;;
         --)
