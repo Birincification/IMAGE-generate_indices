@@ -26,8 +26,8 @@ if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
     exit 1
 fi
 
-#OPTIONS=g:f:o:t:
-LONGOPTS=gtf:,fasta:,organism:,taxid:,nthread:,hisat2,star,kallisto,salmon,r,dexseq,index:,empires
+OPTIONS=r
+LONGOPTS=gtf:,fasta:,organism:,taxid:,nthread:,hisat2,star,kallisto,salmon,dexseq,index:,empires
 
 # -regarding ! and PIPESTATUS see above
 # -temporarily store output to be able to check for errors
