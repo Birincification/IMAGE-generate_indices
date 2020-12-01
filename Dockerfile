@@ -4,6 +4,7 @@ RUN apt-get update --fix-missing -qq && \
     apt-get install -y -q \
     vim \
     git \
+    time \
     python3 \
     python3-pip \
     python \
