@@ -121,11 +121,11 @@ if [[ "$hisat2" = "y" ]]; then
     mkdir -p $outdir/hisat2/tmp
     hisatTMP=$outdir/hisat2/tmp
     ## extracting splice sites...
-    python2 /home/software/hisat2-2.1.0/extract_splice_sites.py $gtf >> $hisatTMP/tmp.ss
+    /usr/bin/time -v python2 /home/software/hisat2-2.1.0/extract_splice_sites.py $gtf >> $hisatTMP/tmp.ss
     ## extracting exons...
-    python2 /home/software/hisat2-2.1.0/extract_exons.py $gtf >> $hisatTMP/tmp.exon
+    /usr/bin/time -v python2 /home/software/hisat2-2.1.0/extract_exons.py $gtf >> $hisatTMP/tmp.exon
     ## building index...
-    python2 /home/software/hisat2-2.1.0/hisat2-build -p 8 --ss $hisatTMP/tmp.ss --exon $hisatTMP/tmp.exon $fasta $outdir/hisat2/INDEX
+    /usr/bin/time -v python2 /home/software/hisat2-2.1.0/hisat2-build -p 8 --ss $hisatTMP/tmp.ss --exon $hisatTMP/tmp.exon $fasta $outdir/hisat2/INDEX
     rm $hisatTMP/tmp.ss
     rm $hisatTMP/tmp.exon
     rm -r $hisatTMP
@@ -139,7 +139,7 @@ if [[ "$star" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [STAR] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate STAR index..."
     overhang=99
     mkdir -p $outdir/STAR/$overhang
-    /home/software/STAR/bin/Linux_x86_64_static/STAR --runMode genomeGenerate --runThreadN $nthread \
+    /usr/bin/time -v /home/software/STAR/bin/Linux_x86_64_static/STAR --runMode genomeGenerate --runThreadN $nthread \
     --genomeDir $outdir/STAR/ --genomeFastaFiles $fasta \
     --sjdbGTFfile $gtf --sjdbOverhang $overhang
     echo $'\n'"[INFO] [generate_indices.sh] [STAR] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: generate STAR index..."
@@ -150,8 +150,8 @@ fi
 if [[ $dexseq -eq y ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [DEXSeq] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: process GTF-File"
     mkdir -p $outdir/dexseq/
-    /usr/bin/python3 /home/scripts/DEXSeq/dexseq_prepare_annotation.py --aggregate=no $gtf $outdir/dexseq/annot.noaggregate.gtf
-    /usr/bin/python3 /home/scripts/DEXSeq/dexseq_prepare_annotation.py $gtf $outdir/dexseq/annot.gtf
+    /usr/bin/time -v /usr/bin/python3 /home/scripts/DEXSeq/dexseq_prepare_annotation.py --aggregate=no $gtf $outdir/dexseq/annot.noaggregate.gtf
+    /usr/bin/time -v /usr/bin/python3 /home/scripts/DEXSeq/dexseq_prepare_annotation.py $gtf $outdir/dexseq/annot.gtf
     echo "[INFO] [generate_indices.sh] [DEXSeq] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: process GTF-File"$'\n'
 fi
 
@@ -160,7 +160,7 @@ fi
 if [[ "$r" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [R] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate R index..."
     mkdir -p $outdir/R/
-    /home/scripts/generate_R_index.R --gtf $gtf --outdir $outdir/R/ --organism $organism --taxonomyId $taxid
+    /usr/bin/time -v /home/scripts/generate_R_index.R --gtf $gtf --outdir $outdir/R/ --organism $organism --taxonomyId $taxid
     echo "[INFO] [generate_indices.sh] [R] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: generate R index..."$'\n'
 fi
 
@@ -169,7 +169,7 @@ fi
 if [[ "$salmon" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [Salmon] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate Salmon index..."
     mkdir -p $outdir/salmon/
-    /home/software/gffread/gffread-0.11.5.Linux_x86_64/gffread -w $outdir/salmon/cdna.fa -g $fasta $gtf
+    /usr/bin/time -v /home/software/gffread/gffread-0.11.5.Linux_x86_64/gffread -w $outdir/salmon/cdna.fa -g $fasta $gtf
     echo $'\n'"[INFO] [generate_indices.sh] [Salmon] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate Salmon index..."
 fi
 
@@ -178,6 +178,6 @@ fi
 if [[ "$kallisto" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [kallisto] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate kallisto index..."
     mkdir -p $outdir/kallisto/
-    /home/software/kallisto_linux-v0.45.0/kallisto index --index $outdir/kallisto/INDEX $outdir/salmon/cdna.fa
+    /usr/bin/time -v /home/software/kallisto_linux-v0.45.0/kallisto index --index $outdir/kallisto/INDEX $outdir/salmon/cdna.fa
     echo "[INFO] [generate_indices.sh] [kallisto] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: generate kallisto index..."$'\n'
 fi
