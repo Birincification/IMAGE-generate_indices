@@ -27,7 +27,7 @@ if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
 fi
 
 OPTIONS=
-LONGOPTS=gtf:,fasta:,organism:,taxid:,nthread:,hisat2,star,kallisto,salmon,r,dexseq,index:,empires,LOG:
+LONGOPTS=gtf:,fasta:,organism:,taxid:,nthread:,hisat2,star,kallisto,salmon,r,dexseq,index:,empires,log:
 
 # -regarding ! and PIPESTATUS see above
 # -temporarily store output to be able to check for errors
@@ -96,7 +96,7 @@ while true; do
             break
             ;;
 		--log)
-			LOG="$2"
+			log="$2"
 			shift 2
 			;;
         *)
@@ -118,7 +118,7 @@ echo 'taxid:'$'\t'$taxid
 echo 'gtf:'$'\t'$gtf
 echo 'fasta:'$'\t'$fasta
 
-watch pidstat -du -hl '>>' $LOG/star-$(date +%s).pidstat & wid=$!
+watch pidstat -du -hl '>>' $log/star-$(date +%s).pidstat & wid=$!
 
 ## STAR
 if [[ "$star" = "y" ]]; then
