@@ -27,7 +27,7 @@ if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
 fi
 
 OPTIONS=
-LONGOPTS=gtf:,fasta:,organism:,taxid:,nthread:,hisat2,star,kallisto,salmon,r,dexseq,index:,empires,log:
+LONGOPTS=gtf:,fasta:,organism:,taxid:,nthread:,hisat2,star,kallisto,salmon,r,dexseq,index:,empires,log:,all
 
 # -regarding ! and PIPESTATUS see above
 # -temporarily store output to be able to check for errors
@@ -91,14 +91,17 @@ while true; do
             r=y
             shift
             ;;
-        --)
-            shift
-            break
-            ;;
 		--log)
 			log="$2"
 			shift 2
 			;;
+		--all)
+			shift
+			;;
+        --)
+            shift
+            break
+            ;;
         *)
             shift
             ;;
