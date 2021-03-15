@@ -21,6 +21,8 @@ RUN apt-get update --fix-missing -qq && \
     libncursesw5-dev \
     libgl-dev \
     libgsl-dev \
+	sysstat \
+	watch \
     && apt-get clean \
     && apt-get purge \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
