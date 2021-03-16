@@ -27,7 +27,7 @@ if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
 fi
 
 OPTIONS=
-LONGOPTS=gtf:,fasta:,organism:,taxid:,nthread:,hisat2,star,kallisto,salmon,r,dexseq,index:,empires
+LONGOPTS=gtf:,fasta:,organism:,taxid:,nthread:,hisat2,star,kallisto,salmon,r,dexseq,index:,empires,all
 
 # -regarding ! and PIPESTATUS see above
 # -temporarily store output to be able to check for errors
@@ -120,12 +120,17 @@ if [[ "$hisat2" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [HISAT2] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: create index"
     mkdir -p $outdir/hisat2/tmp
     hisatTMP=$outdir/hisat2/tmp
+
+	watch pidstat -dru -hl '>>' $log/hisat_index-$(date +%s).pidstat & wid=$!
+
     ## extracting splice sites...
-    /usr/bin/time -v python2 /home/software/hisat2-2.1.0/extract_splice_sites.py $gtf >> $hisatTMP/tmp.ss
+    /usr/bin/time -v python3 /home/software/hisat2/extract_splice_sites.py $gtf >> $hisatTMP/tmp.ss
     ## extracting exons...
-    /usr/bin/time -v python2 /home/software/hisat2-2.1.0/extract_exons.py $gtf >> $hisatTMP/tmp.exon
+    /usr/bin/time -v python3 /home/software/hisat2/extract_exons.py $gtf >> $hisatTMP/tmp.exon
     ## building index...
-    /usr/bin/time -v python2 /home/software/hisat2-2.1.0/hisat2-build -p 8 --ss $hisatTMP/tmp.ss --exon $hisatTMP/tmp.exon $fasta $outdir/hisat2/INDEX
+    /usr/bin/time -v python3 /home/software/hisat2/hisat2-build -p 8 --ss $hisatTMP/tmp.ss --exon $hisatTMP/tmp.exon $fasta $outdir/hisat2/INDEX
+
+	kill -15 $wid
     rm $hisatTMP/tmp.ss
     rm $hisatTMP/tmp.exon
     rm -r $hisatTMP
@@ -139,9 +144,14 @@ if [[ "$star" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [STAR] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate STAR index..."
     overhang=99
     mkdir -p $outdir/STAR/$overhang
+	watch pidstat -dru -hl '>>' $log/star_index-$(date +%s).pidstat & wid=$!
+
+
     /usr/bin/time -v /home/software/STAR/bin/Linux_x86_64_static/STAR --runMode genomeGenerate --runThreadN $nthread \
     --genomeDir $outdir/STAR/ --genomeFastaFiles $fasta \
     --sjdbGTFfile $gtf --sjdbOverhang $overhang
+
+	kill -15 $wid
     echo $'\n'"[INFO] [generate_indices.sh] [STAR] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: generate STAR index..."
 fi
 
@@ -150,8 +160,12 @@ fi
 if [[ "$dexseq" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [DEXSeq] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: process GTF-File"
     mkdir -p $outdir/dexseq/
+	watch pidstat -dru -hl '>>' $log/dexseq_index-$(date +%s).pidstat & wid=$!
+
     /usr/bin/time -v /usr/bin/python3 /home/scripts/DEXSeq/dexseq_prepare_annotation.py --aggregate=no $gtf $outdir/dexseq/annot.noaggregate.gtf
     /usr/bin/time -v /usr/bin/python3 /home/scripts/DEXSeq/dexseq_prepare_annotation.py $gtf $outdir/dexseq/annot.gtf
+
+	kill -15 $wid
     echo "[INFO] [generate_indices.sh] [DEXSeq] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: process GTF-File"$'\n'
 fi
 
@@ -160,7 +174,11 @@ fi
 if [[ "$r" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [R] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate R index..."
     mkdir -p $outdir/R/
+	watch pidstat -dru -hl '>>' $log/r_index-$(date +%s).pidstat & wid=$!
+
     /usr/bin/time -v /home/scripts/generate_R_index.R --gtf $gtf --outdir $outdir/R/ --organism $organism --taxonomyId $taxid
+
+	kill -15 $wid
     echo "[INFO] [generate_indices.sh] [R] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: generate R index..."$'\n'
 fi
 
@@ -169,7 +187,11 @@ fi
 if [[ "$salmon" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [Salmon] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate Salmon index..."
     mkdir -p $outdir/salmon/
-    /usr/bin/time -v /home/software/gffread/gffread-0.11.5.Linux_x86_64/gffread -w $outdir/salmon/cdna.fa -g $fasta $gtf
+	watch pidstat -dru -hl '>>' $log/salmon_index-$(date +%s).pidstat & wid=$!
+
+    /usr/bin/time -v /home/software/gffread/gffread -w $outdir/salmon/cdna.fa -g $fasta $gtf
+	
+	kill -15 $wid
     echo $'\n'"[INFO] [generate_indices.sh] [Salmon] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate Salmon index..."
 fi
 
@@ -178,6 +200,10 @@ fi
 if [[ "$kallisto" = "y" ]]; then
     echo $'\n'"[INFO] [generate_indices.sh] [kallisto] ["`date "+%Y/%m/%d-%H:%M:%S"`"] Start: generate kallisto index..."
     mkdir -p $outdir/kallisto/
-    /usr/bin/time -v /home/software/kallisto_linux-v0.45.0/kallisto index --index $outdir/kallisto/INDEX $outdir/salmon/cdna.fa
+	watch pidstat -dru -hl '>>' $log/kallisto_index-$(date +%s).pidstat & wid=$!
+
+    /usr/bin/time -v /home/software/kallisto/kallisto index --index $outdir/kallisto/INDEX $outdir/salmon/cdna.fa
+
+	kill -15 $wid
     echo "[INFO] [generate_indices.sh] [kallisto] ["`date "+%Y/%m/%d-%H:%M:%S"`"] End: generate kallisto index..."$'\n'
 fi
