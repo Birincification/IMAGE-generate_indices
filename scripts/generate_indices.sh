@@ -128,11 +128,11 @@ if [[ "$hisat2" = "y" ]]; then
 	watch pidstat -dru -hl '>>' $log/hisat_index-$(date +%s).pidstat & wid=$!
 
     ## extracting splice sites...
-    /usr/bin/time -v python3 /home/software/hisat2/extract_splice_sites.py $gtf >> $hisatTMP/tmp.ss
+    /usr/bin/time -v python3 /home/software/hisat2-2.2.1/extract_splice_sites.py $gtf >> $hisatTMP/tmp.ss
     ## extracting exons...
-    /usr/bin/time -v python3 /home/software/hisat2/extract_exons.py $gtf >> $hisatTMP/tmp.exon
+    /usr/bin/time -v python3 /home/software/hisat2-2.2.1/extract_exons.py $gtf >> $hisatTMP/tmp.exon
     ## building index...
-    /usr/bin/time -v python3 /home/software/hisat2/hisat2-build -p 8 --ss $hisatTMP/tmp.ss --exon $hisatTMP/tmp.exon $fasta $outdir/hisat2/INDEX
+    /usr/bin/time -v python3 /home/software/hisat2-2.2.1/hisat2-build -p 8 --ss $hisatTMP/tmp.ss --exon $hisatTMP/tmp.exon $fasta $outdir/hisat2/INDEX
 
 	kill -15 $wid
     rm $hisatTMP/tmp.ss
