@@ -121,7 +121,7 @@ echo 'taxid:'$'\t'$taxid
 echo 'gtf:'$'\t'$gtf
 echo 'fasta:'$'\t'$fasta
 
-watch pidstat -du -hl '>>' $log/star-$(date +%s).pidstat & wid=$!
+watch pidstat -dru -hl '>>' $log/star-$(date +%s).pidstat & wid=$!
 
 ## STAR
 if [[ "$star" = "y" ]]; then
